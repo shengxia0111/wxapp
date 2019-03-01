@@ -3,5 +3,5 @@ import requests
 
 s = requests
 
-data={"code":"00132DSg2zd3MA0yooSg2mdUSg232DSZ-"}
+data={"code":"061nDIEX1KvkR01o8bEX1PDpEX1nDIE2"}
 r = s.post('http://127.0.0.1:5000/auth', data)

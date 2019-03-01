@@ -21,7 +21,7 @@ from weixin.oauth2 import OAuth2AuthExchangeError
 
 # Flask与Mysql配置
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{0}:{1}@{2}:{3}/{4}?charset=utf8'.format(configs.db['user'], \
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://{0}:{1}@{2}:{3}/{4}?charset=utf8'.format(configs.db['user'], \
                                                                                                       configs.db['password'], \
                                                                                                       configs.db['host'], \
                                                                                                       configs.db['port'], \
@@ -33,8 +33,8 @@ db = SQLAlchemy(app)
 @app.route('/auth',methods = ['Post'])
 def get_user_openid():
     # POST请求数据
-    encrypted_data = request.form['encrypted_data']
-    iv = request.form['iv']
+    # encrypted_data = request.form['encryptedData']
+    # iv = request.form['iv']
     code = request.form['code']
 
     # app配置秘钥
@@ -55,29 +55,30 @@ def get_user_openid():
     if not isinstance(session_info,dict):
         resp = make_response('Session Key Error', 500)
         return resp
-    open_id = session_info.get('open_id')
-    session_key = session_info.get('session_key')
-    crypt = WXBizDataCrypt(appid, session_key)
-    user_info = crypt.decrypt(encrypted_data, iv)
+    open_id = session_info.get('openid')
+    # session_key = session_info.get('session_key')
+    # crypt = WXBizDataCrypt(appid, session_key)
+    # user_info = crypt.decrypt(encrypted_data, iv)
+    # resp = make_response(jsonify(session_info),)
+    # return resp
 
-    resp = make_response(jsonify(session_info))
-    return resp
-
-    # is_open_id_in_dase = True if UserInfo.query.filter_by(open_id=open_id).first() else False
-    # if not is_open_id_in_dase:
-    #     resp = make_response('User Not Registered', 401)
-    #     return resp
-    # else:
-    #     return make_response(jsonify(user_info))
+    is_open_id_in_dase = True if UserInfo.query.filter_by(open_id=open_id).first() else False
+    if not is_open_id_in_dase:
+        resp = make_response(jsonify(session_info), 401)
+        return resp
+    else:
+        resp = make_response(jsonify(session_info), 201)
+        return resp
 
 @app.route('/')
 def hello_world():
     return "<h1 style='color:red' algin='center'>Hello World!<h1>"
 
-
 # 数据表
 class UserInfo(db.Model):
-
+    # tablename
+    __tablename__='userinfo'
+    # fields
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     open_id = db.Column(db.String(40))
     user_name = db.Column(db.String(32))
@@ -87,21 +88,24 @@ class UserInfo(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('userrole.role_id'), nullable=False, default=1)
     department_id = db.Column(db.Integer, db.ForeignKey('departmentinfo.department_id'), nullable=False, default=1)
     gender = db.Column(db.Integer, default=1)
-
+    # log
     def __repr__(self):
         return '<User %s>' % self.user_name
 
 class DepartmentInfo(db.Model):
-
+    # tablename
+    __tablename__='departmentinfo'
+    # fields
     department_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     department_name = db.Column(db.String(20), nullable=False)
-
+    # foreignkey
     users = db.relationship('UserInfo', backref='department', lazy=True)
-
+    # log
     def __repr__(self):
         return '<Department %s>' % self.department_name
 
 class RegisterStatus(db.Model):
+    __tablename__ = 'registerstatus'
 
     status_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status_name = db.Column(db.String(10), nullable=False)
@@ -112,6 +116,7 @@ class RegisterStatus(db.Model):
         return '<RegisterStatus %s>' % self.status_name
 
 class UserRole(db.Model):
+    __tablename__ = 'userrole'
 
     role_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     role_name = db.Column(db.String(20), nullable=False)
@@ -122,12 +127,21 @@ class UserRole(db.Model):
     def __repr__(self):
         return '<UserRole %s with Privillege %s>' % (self.role_name, self.privillege)
 
+class SessionInfo(db.Model):
+    __tablename__ = 'sessioninfo'
+
+    third_session = db.Column(db.String(255), primary_key=True, autoincrement=False)
+    session_key = db.Column(db.String(40), nullable=False)
+    open_id = db.Column(db.String(40), nullable=False)
+
+    def __repr__(self):
+        return '<ThirdSession %s>' % self.third_session
 
 if __name__=='__main__':
     import logging;
-    logging.basicConfig('web_info.log', filemode='a', level=logging.INFO)
+    logging.basicConfig(filename='web_info.log', filemode='a', level=logging.INFO)
     app.logger.info('Running Server On 127.0.0.1:5000...')
     app.logger.info('Using Database %s@%s/%s' % (configs.db['user'], configs.db['host'], configs.db['db']))
     app.logger.info('new log!')
-    app.run(host='0.0.0.0',port='8085',debug=True)
+    app.run()
 

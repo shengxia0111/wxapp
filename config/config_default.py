@@ -21,7 +21,7 @@ configs = {
     },
     'wxapp': {
         'appid': 'wxa74d5f562437e804',
-        'appsecret': '4f782a855f8cc0850965b00703075024'
+        'appsecret': '541d1478f197829b580a7e9c5a7fba9a'
     }
 
 
